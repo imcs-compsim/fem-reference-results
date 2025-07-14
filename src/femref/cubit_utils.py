@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Dict, List, Optional, Union
 
 from cubitpy import CubitPy
 
@@ -42,7 +42,9 @@ def cubit_cmd(
     return new_ids
 
 
-def print_mesh_statistics(cubit: CubitPy) -> None:
+def print_mesh_statistics(
+    cubit: CubitPy, options: Optional[Dict[str, Union[int, float, str]]] = None
+) -> None:
     """Prints statistics about the generated mesh.
 
     The statics comprise the total number of nodes, total number of elements
@@ -52,12 +54,18 @@ def print_mesh_statistics(cubit: CubitPy) -> None:
     ----------
     cubit : CubitPy
         The CubitPy instance to use for retrieving mesh statistics.
+    options : Dict[str, Union[int, float, str]], optional
+        A dictionary to store the resulting mesh statistics.
     """
     # Print information about the total number of nodes and elements in the mesh
     num_nodes = cubit.get_node_count()
     num_elements = cubit.get_element_count()
     print(f"Total nodes:        {num_nodes}")
     print(f"Total elements:     {num_elements}")
+    # Also add the information to the options dictionary
+    if options is not None:
+        options["mesh"]["resulting_nodes"] = num_nodes
+        options["mesh"]["resulting_elements"] = num_elements
     # Print information about the number of nodes in each nodeset
     nodeset_ids = cubit.parse_cubit_list("nodeset", "all")
     for nsid in nodeset_ids:
