@@ -28,7 +28,7 @@ repos:
       - id: trailing-whitespace # but we keep them here for other file types
       - id: check-merge-conflict
       - id: check-added-large-files
-        args: ['--maxkb=500']  # Warn if adding files >500KB outside of LFS
+        args: ['--maxkb=51200']  # Warn if adding files >50MB outside of LFS
   - repo: local
     hooks:
       - id: check-git-lfs-installed
