@@ -1,0 +1,37 @@
+[project]
+name = "femref"
+version = "0.1.0"
+description = "Utilities and scripts for genereting FEM reference results for SciML applications."
+authors = [{ name = "Daniel Wolff", email = "d.wolff@unibw.de" }]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.8"
+dependencies = [
+    "cubitpy @ git+https://github.com/imcs-compsim/cubitpy/@main"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "ruff"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 79
+preview = true
+
+[tool.lint]
+# Adding "ANN" would be really nice, but is to much work currently.
+# Adding "PT" would be nice, for pytest naming convention.
+# Adding "SIM" would be nice, but is to much work currently.
+select = [
+    "E", "F", "W", "I", "N", "D", "UP", "YTT", "S", "BLE", "B", "A", "C4",
+    "ISC", "ICN", "PIE", "T20", "PYI", "Q", "RSE", "TID", "TCH", "INT", "PD",
+    "PGH", "TRY", "FLY", "NPY", "PERF", "FURB", "LOG"]
+
+[tool.lint.pydocstyle]
+convention = "google"

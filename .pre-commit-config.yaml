@@ -1,0 +1,37 @@
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.13
+    hooks:
+      # Run the linter.
+      - id: ruff-check
+        types_or: [ python, pyi ]
+        args: [ --fix, --exit-non-zero-on-fix ]
+      # Run the formatter.
+      - id: ruff-format
+        types_or: [ python, pyi ]
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.2.0
+    hooks:
+      - id: conventional-pre-commit
+        # stages: [commit-msg]
+        args: [--verbose]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: end-of-file-fixer   # These two are checked for python files via ruff
+      - id: trailing-whitespace # but we keep them here for other file types
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=500']  # Warn if adding files >500KB outside of LFS
+  - repo: local
+    hooks:
+      - id: check-git-lfs-installed
+        name: Check Git LFS Installed
+        entry: bash -c 'command -v git-lfs >/dev/null || (echo "Git LFS is not installed!" && exit 1)'
+        language: system
+        always_run: true
+        pass_filenames: false
