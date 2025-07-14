@@ -118,84 +118,123 @@ def generate_block(filename: str) -> None:
         cubit.group(add_value=f"add surface with x_coord < {EPS}"),
         name="rigid_left",
         bc_type=cupy.bc_type.dirichlet,
-        bc_description="NUMDOF 3 ONOFF 1 1 1 VAL 0 0 0 FUNCT 0 0 0",
+        bc_description={
+            "NUMDOF": 3,
+            "ONOFF": [1, 1, 1],
+            "VAL": [0, 0, 0],
+            "FUNCT": [0, 0, 0],
+        },
     )
     cubit.add_node_set(
         cubit.group(add_value=f"add surface with x_coord > {LENGTH - EPS}"),
         name="torsion_right",
         bc_type=cupy.bc_type.dirichlet,
-        bc_description="NUMDOF 3 ONOFF 1 1 1 VAL 0 1 1 FUNCT 0 1 2",
+        bc_description={
+            "NUMDOF": 3,
+            "ONOFF": [1, 1, 1],
+            "VAL": [0, 1, 1],
+            "FUNCT": [0, 1, 2],
+        },
     )
-
-    if SHOW_STEP[3] or SHOW_FINAL:
-        cubit.display_in_cubit(labels=[cupy.geometry.surface])
 
     # Finally we have to set the element blocks.
     cubit.add_element_type(
         block.volumes()[0],
         el_type=cupy.element_type.hex8,
-        bc_description=f"KINEM {KINEMATICS}",
+        bc_description={
+            "KINEM": KINEMATICS,
+        },
     )
 
     # Print mesh statistics
     print_mesh_statistics(cubit)
 
+    if SHOW_STEP[3] or SHOW_FINAL:
+        cubit.display_in_cubit(labels=[cupy.geometry.surface])
+
     # Set the head string.
-    cubit.head = f"""------------------------------------------------------------------PROBLEM SIZE
-    DIM                             3
-    ------------------------------------------------------------------PROBLEM TYPE
-    PROBLEMTYPE                     Structure
-    ----------------------------------------------------------------------------IO
-    OUTPUT_BIN                      no
-    STRUCT_DISP                     yes
-    FILESTEPS                       1000
-    VERBOSITY                       Standard
-    STRUCT_STRAIN                   gl
-    STRUCT_STRESS                   cauchy
-    OUTPUT_SPRING                   Yes
-    WRITE_INITIAL_STATE             yes
-    ---------------------------------------------------------IO/RUNTIME VTK OUTPUT
-    OUTPUT_DATA_FORMAT              binary
-    INTERVAL_STEPS                  5
-    EVERY_ITERATION                 no
-    -----------------------------------------------IO/RUNTIME VTK OUTPUT/STRUCTURE
-    OUTPUT_STRUCTURE                yes
-    DISPLACEMENT                    yes
-    ELEMENT_OWNER                   yes
-    STRESS_STRAIN                   yes
-    ------------------------------------------------------------STRUCTURAL DYNAMIC
-    INT_STRATEGY                    Standard
-    DYNAMICTYPE                     Statics
-    RESULTSEVERY                    5
-    RESTARTEVERY                    {LOAD_STEPS}
-    TIMESTEP                        {1.0 / LOAD_STEPS}
-    NUMSTEP                         {LOAD_STEPS}
-    MAXTIME                         1
-    PREDICT                         ConstDis
-    NORM_RESF                       Rel
-    TOLDISP                         1e-7
-    TOLRES                          1e-7
-    NORMCOMBI_DISPPRES              And
-    LINEAR_SOLVER                   1
-    NLNSOL                          fullnewton
-    MAXITER                         20
-    ----------------------------------------------------------------------SOLVER 1
-    NAME                            Structure_Solver
-    SOLVER                          Superlu
-    -----------------------------------------------------------STRUCT NOX/Printing
-    Outer Iteration                 = Yes
-    Inner Iteration                 = No
-    Outer Iteration StatusTest      = Yes
-    ---------------------------------------------------------------------MATERIALS
-    MAT 1  MAT_ElastHyper NUMMAT 1 MATIDS 10 DENS 1
-    MAT 10 ELAST_CoupLogNeoHooke MODE YN C1 {YOUNG} C2 {POISSON}
-    ------------------------------------------------------------------------FUNCT1
-    SYMBOLIC_FUNCTION_OF_SPACE_TIME y*cos({2 * END_ROTATION / 360}*pi*t)-z*sin({2 * END_ROTATION / 360}*pi*t)-y
-    ------------------------------------------------------------------------FUNCT2
-    SYMBOLIC_FUNCTION_OF_SPACE_TIME y*sin({2 * END_ROTATION / 360}*pi*t)+z*cos({2 * END_ROTATION / 360}*pi*t)-z"""
+    cubit.fourc_input.combine_sections({
+        "PROBLEM SIZE": {"DIM": 3},
+        "PROBLEM TYPE": {"PROBLEMTYPE": "Structure"},
+        "IO": {
+            "OUTPUT_BIN": False,
+            "STRUCT_DISP": True,
+            "FILESTEPS": 1000,
+            "VERBOSITY": "Standard",
+            "STRUCT_STRAIN": "gl",
+            "STRUCT_STRESS": "cauchy",
+            "OUTPUT_SPRING": True,
+            "WRITE_INITIAL_STATE": True,
+        },
+        "IO/RUNTIME VTK OUTPUT": {
+            "OUTPUT_DATA_FORMAT": "binary",
+            "INTERVAL_STEPS": 5,
+            "EVERY_ITERATION": False,
+        },
+        "IO/RUNTIME VTK OUTPUT/STRUCTURE": {
+            "OUTPUT_STRUCTURE": True,
+            "DISPLACEMENT": True,
+            "ELEMENT_OWNER": True,
+            "STRESS_STRAIN": True,
+        },
+        "STRUCTURAL DYNAMIC": {
+            "INT_STRATEGY": "Standard",
+            "DYNAMICTYPE": "Statics",
+            "RESULTSEVERY": 5,
+            "RESTARTEVERY": LOAD_STEPS,
+            "TIMESTEP": 1.0 / LOAD_STEPS,
+            "NUMSTEP": LOAD_STEPS,
+            "MAXTIME": 1,
+            "PREDICT": "ConstDis",
+            "NORM_RESF": "Rel",
+            "TOLDISP": 1e-7,
+            "TOLRES": 1e-7,
+            "NORMCOMBI_DISPPRES": "And",
+            "LINEAR_SOLVER": 1,
+            "NLNSOL": "fullnewton",
+            "MAXITER": 20,
+        },
+        "SOLVER 1": {
+            "NAME": "Structure_Solver",
+            "SOLVER": "Superlu",
+        },
+        "STRUCT NOX/Printing": {
+            "Outer Iteration": True,
+            "Inner Iteration": False,
+            "Outer Iteration StatusTest": True,
+        },
+        "MATERIALS": [
+            {
+                "MAT": 1,
+                "MAT_ElastHyper": {
+                    "NUMMAT": 1,
+                    "MATIDS": 10,
+                    "DENS": 1,
+                },
+            },
+            {
+                "MAT": 10,
+                "ELAST_CoupLogNeoHooke": {
+                    "MODE": "YN",
+                    "C1": YOUNG,
+                    "C2": POISSON,
+                },
+            },
+        ],
+        "FUNCT1": [
+            {
+                "SYMBOLIC_FUNCTION_OF_SPACE_TIME": f"y*cos({2 * END_ROTATION / 360}*pi*t)-z*sin({2 * END_ROTATION / 360}*pi*t)-y"
+            },
+        ],
+        "FUNCT2": [
+            {
+                "SYMBOLIC_FUNCTION_OF_SPACE_TIME": f"y*sin({2 * END_ROTATION / 360}*pi*t)+z*cos({2 * END_ROTATION / 360}*pi*t)-z"
+            },
+        ],
+    })
 
     # Write the input file.
-    cubit.create_dat(filename)
+    cubit.dump(filename)
 
 
 ##########
@@ -206,6 +245,6 @@ if __name__ == "__main__":
     path = f"./{KINEMATICS}"
     os.makedirs(f"{path}", exist_ok=True)
 
-    generate_block(f"{path}/block_torsion.dat")
+    generate_block(f"{path}/block_torsion.yaml")
 
     write_readme(f"{path}/README.md", OPTIONS)
