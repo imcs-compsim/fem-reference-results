@@ -6,7 +6,8 @@ from femref.utils import write_readme
 
 """
 This script generates an input file for simulating the torsion of a block with
-non-linear material behavior.
+hyperelastic material behavior. The torsion is prescribed by a Dirichlet BC
+that depends on the current load step.
 """
 
 ############
