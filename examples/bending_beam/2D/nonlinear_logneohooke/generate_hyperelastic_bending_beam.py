@@ -120,32 +120,58 @@ def generate_bending_beam(filename: str) -> None:
         cubit.group(add_value=f"add curve with y_coord < {-HEIGHT / 2 + EPS}"),
         name="bottom",
         bc_type=cupy.bc_type.dirichlet,
-        bc_description="NUMDOF 2 ONOFF 0 0 VAL 0 0 FUNCT 0 0",
+        bc_description={
+            "NUMDOF": 2,
+            "ONOFF": [0, 0],
+            "VAL": [0, 0],
+            "FUNCT": [0, 0],
+        },
     )
     cubit.add_node_set(
         cubit.group(add_value=f"add curve with x_coord < {-LENGTH / 2 + EPS}"),
         name="left",
         bc_type=cupy.bc_type.dirichlet,
-        bc_description="NUMDOF 2 ONOFF 1 1 VAL 0 0 FUNCT 0 0",
+        bc_description={
+            "NUMDOF": 2,
+            "ONOFF": [1, 1],
+            "VAL": [0, 0],
+            "FUNCT": [0, 0],
+        },
     )
     cubit.add_node_set(
         cubit.group(add_value=f"add curve with y_coord > {HEIGHT / 2 - EPS}"),
         name="top",
         bc_type=cupy.bc_type.dirichlet,
-        bc_description="NUMDOF 2 ONOFF 0 0 VAL 0 0 FUNCT 0 0",
+        bc_description={
+            "NUMDOF": 2,
+            "ONOFF": [0, 0],
+            "VAL": [0, 0],
+            "FUNCT": [0, 0],
+        },
     )
     cubit.add_node_set(
         cubit.group(add_value=f"add curve with x_coord > {LENGTH / 2 - EPS}"),
         name="right",
         bc_type=cupy.bc_type.neumann,
-        bc_description=f"NUMDOF 2 ONOFF 0 1 VAL 0 {-SHEAR_FORCE} FUNCT 0 1",
+        bc_description={
+            "NUMDOF": 2,
+            "ONOFF": [0, 1],
+            "VAL": [0, -SHEAR_FORCE],
+            "FUNCT": [0, 1],
+        },
     )
 
     # Finally we have to set the element blocks.
     cubit.add_element_type(
         beam.surfaces()[0],
         el_type=cupy.element_type.quad4,
-        bc_description=f"KINEM {KINEMATICS} EAS none THICK 1 STRESS_STRAIN {STRESS_STRAIN_MODEL} GP 2 2",
+        bc_description={
+            "KINEM": KINEMATICS,
+            "EAS": None,  # or "none" ?
+            "THICK": 1,
+            "STRESS_STRAIN": STRESS_STRAIN_MODEL,
+            "GP": [2, 2],
+        },
     )
 
     # Print mesh statistics
@@ -155,58 +181,81 @@ def generate_bending_beam(filename: str) -> None:
         cubit.display_in_cubit(labels=[cupy.geometry.curve])
 
     # Set the head string.
-    cubit.head = f"""------------------------------------------------------------------PROBLEM SIZE
-    DIM                             2
-    ------------------------------------------------------------------PROBLEM TYPE
-    PROBLEMTYPE                     Structure
-    ----------------------------------------------------------------------------IO
-    OUTPUT_BIN                      no
-    STRUCT_DISP                     yes
-    FILESTEPS                       1000
-    VERBOSITY                       Standard
-    STRUCT_STRAIN                   gl
-    STRUCT_STRESS                   cauchy
-    OUTPUT_SPRING                   Yes
-    WRITE_INITIAL_STATE             yes
-    ---------------------------------------------------------IO/RUNTIME VTK OUTPUT
-    OUTPUT_DATA_FORMAT              binary
-    INTERVAL_STEPS                  {LOAD_STEPS / 10.0}
-    EVERY_ITERATION                 no
-    -----------------------------------------------IO/RUNTIME VTK OUTPUT/STRUCTURE
-    OUTPUT_STRUCTURE                yes
-    DISPLACEMENT                    yes
-    ELEMENT_OWNER                   yes
-    STRESS_STRAIN                   yes
-    ------------------------------------------------------------STRUCTURAL DYNAMIC
-    INT_STRATEGY                    Standard
-    DYNAMICTYPE                     Statics
-    RESULTSEVERY                    1
-    RESTARTEVERY                    1
-    TIMESTEP                        {1.0 / LOAD_STEPS}
-    NUMSTEP                         {LOAD_STEPS}
-    MAXTIME                         1
-    PREDICT                         TangDis
-    NORM_RESF                       Rel
-    TOLDISP                         1e-7
-    TOLRES                          1e-7
-    LINEAR_SOLVER                   1
-    NLNSOL                          fullnewton
-    MAXITER                         50
-    ----------------------------------------------------------------------SOLVER 1
-    NAME                            Structure_Solver
-    SOLVER                          Superlu
-    -----------------------------------------------------------STRUCT NOX/Printing
-    Outer Iteration                 = Yes
-    Inner Iteration                 = No
-    Outer Iteration StatusTest      = No
-    ---------------------------------------------------------------------MATERIALS
-    MAT 1  MAT_ElastHyper NUMMAT 1 MATIDS 10 DENS 0.1
-    MAT 10 ELAST_CoupLogNeoHooke MODE Lame C1 {MUE} C2 {LAMBDA}
-    ------------------------------------------------------------------------FUNCT1
-    SYMBOLIC_FUNCTION_OF_SPACE_TIME t"""
+    cubit.fourc_input.combine_sections({
+        "PROBLEM SIZE": {"DIM": 2},
+        "PROBLEM TYPE": {"PROBLEMTYPE": "Structure"},
+        "IO": {
+            "OUTPUT_BIN": False,
+            "STRUCT_DISP": True,
+            "FILESTEPS": 1000,
+            "VERBOSITY": "Standard",
+            "STRUCT_STRAIN": "gl",
+            "STRUCT_STRESS": "cauchy",
+            "OUTPUT_SPRING": True,
+            "WRITE_INITIAL_STATE": True,
+        },
+        "IO/RUNTIME VTK OUTPUT": {
+            "OUTPUT_DATA_FORMAT": "binary",
+            "INTERVAL_STEPS": LOAD_STEPS / 10.0,
+            "EVERY_ITERATION": False,
+        },
+        "IO/RUNTIME VTK OUTPUT/STRUCTURE": {
+            "OUTPUT_STRUCTURE": True,
+            "DISPLACEMENT": True,
+            "ELEMENT_OWNER": True,
+            "STRESS_STRAIN": True,
+        },
+        "STRUCTURAL DYNAMIC": {
+            "INT_STRATEGY": "Standard",
+            "DYNAMICTYPE": "Statics",
+            "RESULTSEVERY": 1,
+            "RESTARTEVERY": 1,
+            "TIMESTEP": 1.0 / LOAD_STEPS,
+            "NUMSTEP": LOAD_STEPS,
+            "MAXTIME": 1,
+            "PREDICT": "TangDis",  # try "ConstDis"
+            "NORM_RESF": "Rel",
+            "TOLDISP": 1e-7,
+            "TOLRES": 1e-7,
+            "NORMCOMBI_DISPPRES": "And",  # maybe without this?
+            "LINEAR_SOLVER": 1,
+            "NLNSOL": "fullnewton",
+            "MAXITER": 50,  # or are 20 sufficient?
+        },
+        "SOLVER 1": {
+            "NAME": "Structure_Solver",
+            "SOLVER": "Superlu",
+        },
+        "STRUCT NOX/Printing": {
+            "Outer Iteration": True,
+            "Inner Iteration": False,
+            "Outer Iteration StatusTest": True,
+        },
+        "MATERIALS": [
+            {
+                "MAT": 1,
+                "MAT_ElastHyper": {
+                    "NUMMAT": 1,
+                    "MATIDS": 10,
+                    "DENS": 0.1,
+                },
+            },
+            {
+                "MAT": 10,
+                "ELAST_CoupLogNeoHooke": {
+                    "MODE": "Lame",
+                    "C1": MUE,
+                    "C2": LAMBDA,
+                },
+            },
+        ],
+        "FUNCT1": [
+            {"SYMBOLIC_FUNCTION_OF_SPACE_TIME": "t"},
+        ],
+    })
 
     # Write the input file.
-    cubit.create_dat(filename)
+    cubit.dump(filename)
 
 
 ##########
@@ -214,6 +263,6 @@ def generate_bending_beam(filename: str) -> None:
 ##########
 
 if __name__ == "__main__":
-    generate_bending_beam("./hyperelastic_bending_beam.dat")
+    generate_bending_beam("./hyperelastic_bending_beam.yaml")
 
     write_readme("./README.md", OPTIONS)
